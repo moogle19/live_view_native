@@ -16,55 +16,11 @@ defmodule LiveViewNativeWeb do
   below. Instead, define any helper function in modules
   and import those modules here.
   """
-
-  def controller do
-    quote do
-      use Phoenix.Controller, namespace: LiveViewNativeWeb
-
-      import Plug.Conn
-      import LiveViewNativeWeb.Gettext
-      alias LiveViewNativeWeb.Router.Helpers, as: Routes
-    end
-  end
-
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/live_view_native_web/templates",
-        namespace: LiveViewNativeWeb
-
-      # Import convenience functions from controllers
-      import Phoenix.Controller,
-        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
-
-      # Include shared imports and aliases for views
-      unquote(view_helpers())
-    end
-  end
-
-  def live_view do
-    quote do
-      use Phoenix.LiveView,
-        layout: {ScratchboardWeb.LayoutView, "live.html"}
-
-      unquote(view_helpers())
-    end
-  end
-
-  def live_component do
-    quote do
-      use Phoenix.LiveComponent
-
-      unquote(view_helpers())
-    end
-  end
-
   def router do
     quote do
-      use Phoenix.Router
+      use Phoenix.Router, helpers: false
 
       import Plug.Conn
-      # import Phoenix.Controller
       import Phoenix.LiveView.Router
     end
   end
@@ -76,14 +32,71 @@ defmodule LiveViewNativeWeb do
     end
   end
 
-  defp view_helpers do
+  def controller do
     quote do
-      # Import basic rendering functionality (render, render_layout, etc)
-      import Phoenix.View
+      use Phoenix.Controller,
+        namespace: LiveViewNativePlatform,
+        formats: [:html, :json]
 
-      import LiveViewNativeWeb.ErrorHelpers
+      import Plug.Conn
       import LiveViewNativeWeb.Gettext
-      alias LiveViewNativeWeb.Router.Helpers, as: Routes
+
+      unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {ScratchboardWeb.LayoutView, :live}
+
+      unquote(html_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(html_helpers())
+    end
+  end
+
+  def html do
+    quote do
+      use Phoenix.Component
+
+      # Import convenience functions from controllers
+      import Phoenix.Controller,
+        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+
+      # Include general helpers for rendering HTML
+      unquote(html_helpers())
+    end
+  end
+
+  defp html_helpers do
+    quote do
+      # HTML escaping functionality
+      import Phoenix.HTML
+      # Core UI components and translation
+      # import LiveViewNativeWeb.CoreComponents
+      import LiveViewNativeWeb.Gettext
+
+      # Shortcut for generating JS commands
+      alias Phoenix.LiveView.JS
+
+      # Routes generation with the ~p sigil
+      unquote(verified_routes())
+    end
+  end
+
+  def verified_routes do
+    quote do
+      use Phoenix.VerifiedRoutes,
+        endpoint: LiveViewNativeWeb.Endpoint,
+        router: LiveViewNativeWeb.Router,
+        statics: LiveViewNativeWeb.static_paths()
     end
   end
 
